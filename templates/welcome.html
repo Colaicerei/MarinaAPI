@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <title>Welcome</title>
+  <script>
+      window.addEventListener('load', (event) => {
+          document.getElementById('sign-in').onclick = function () {
+              window.location.href = '/user/oauth';
+          };
+      });
+      window.addEventListener('load', (event) => {
+          document.getElementById('sign-out').onclick = function () {
+              window.location.href = '/user/logout';
+          };
+      });
+      window.addEventListener('load', (event) => {
+          document.getElementById('view-profile').onclick = function () {
+              window.location.href = '/user/user_info';
+          };
+      });
+  </script>
+  <style>
+    body {
+      font-family: "helvetica", sans-serif;
+      text-align: center;
+    }
+
+    .button {
+      background-color: blue;
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+    }
+  </style>
+  <link type="text/css" rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
+</head>
+
+<body>
+<h1>Marina API - Welcome</h1>
+
+<div>
+  <p>Hello, please sign in with google.</p>
+  <button id="sign-in" class="button">Sign In with Google</button>
+</div>
+<div>
+  {% if message %}
+  <p>{{ message }}</p>
+  {% endif %}
+  {% if email %}
+  <p>You are logged in as {{ email }}, view your JWT or log out:</p>
+  <button id="view-profile">View Profile</button>
+  <button id="sign-out">Sign Out</button>
+  {% endif %}
+</div>
+
+</body>
+</html>

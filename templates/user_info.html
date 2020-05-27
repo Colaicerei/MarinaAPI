@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <title>User Info</title>
+  <script>
+      window.addEventListener('load', (event) => {
+          document.getElementById('sign-out').onclick = function () {
+              window.location.href = '/user/logout';
+          };
+      });
+  </script>
+  <link type="text/css" rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+  <h1>Marina API - User Info</h1>
+  <h2>Hello, below is your account information:</h2>
+  {% if user %}
+      <p>Email: {{ user['email'] }}</p>
+      <p>User_id: {{ user['user_id'] }}</p>
+  {% endif %}
+  {% if jwt %}
+      <p>Your JWT is: {{ jwt }}</p>
+  {% endif %}
+  <button id="sign-out" class="button">Sign Out</button>
+</body>
+</html>
