@@ -35,16 +35,34 @@ def get_owner_boats(owner):
         e["id"] = str(e.key.id)
     return results
 
+# check if user is new
+def user_is_new(sub):
+    query = client.query(kind='Boat')
+    results = list(query.fetch())
+    for e in results:
+        if e['user_id'] == sub:
+            return False
+    return True
+
 # add user to datastore
 def create_user(id_info):
-    new_user = datastore.Entity(key=client.key('User'))
-    new_user.update({
-        'user_id': id_info['sub'],
-        'email': id_info['email']
-    })
-    client.put(new_user)
-    return new_user
+    if user_is_new(id_info['sub']):
+        new_user = datastore.Entity(key=client.key('User'))
+        new_user.update({
+            'user_id': id_info['sub'],
+            'email': id_info['email']
+        })
+        client.put(new_user)
+        return new_user
 
+# get all user from datastore
+def get_users(base_url):
+    query = client.query(kind='User')
+    results = list(query.fetch())
+    for e in results:
+        e['id'] = e.key.id
+        e['self'] = base_url + '/' + str(e.key.id)
+    return results
 
 # This link will redirect users to begin the OAuth flow with Google
 @bp.route('')
@@ -77,7 +95,7 @@ def oauthroute():
             id_info = id_token.verify_oauth2_token(jwt, req, client_id)
         except ValueError:
             error = "Error: invalid JWT"
-            return redirect(url_for('index', message=error))
+            return redirect(url_for('user', message=error))
         if id_info['iss'] != 'accounts.google.com':
             raise ValueError('Wrong issuer.')
         else:

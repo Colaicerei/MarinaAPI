@@ -87,6 +87,14 @@ def delete_boat(boat_id, owner_id):
         if result['owner'] != owner_id:
             error_msg = {"Error": "The boat is owned by someone else and cannot be deleted"}
             return (error_msg, 403)
+        for l in result['loads']:
+            load_key = client.key('Load', int(l['id']))
+            load = client.get(key=load_key)
+            if load is not None:
+                load.update({
+                    "carrier": None
+                })
+                client.put(load)
         client.delete(boat_key)
         return ('', 204)
 
