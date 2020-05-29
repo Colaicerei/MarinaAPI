@@ -14,7 +14,7 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 #os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 client = datastore.Client()
-bp = Blueprint('user', __name__, url_prefix='/user')
+bp = Blueprint('user', __name__, url_prefix='/users')
 
 # These should be copied from an OAuth2 Credential section at
 # https://console.cloud.google.com/apis/credentials
@@ -106,6 +106,15 @@ def oauthroute():
 def logout():
     session.pop('email', None)
     return redirect(url_for('user',message='You are logged out'))
+
+# create a new boat via POST or view all boats via GET
+@ bp.route('', methods=['GET'])
+def view_users():
+    if request.method == 'GET':
+        user_list = get_users(request.base_url)
+        return Response(json.dumps(user_list), status=200, mimetype='application/json')
+    else:
+        return 'Method not recogonized'
 
 # view all boats for given owner
 @bp.route('/users/<user_id>/boats', methods=['GET'])
