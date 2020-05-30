@@ -20,27 +20,17 @@ bp = Blueprint('user', __name__, url_prefix='/users')
 # https://console.cloud.google.com/apis/credentials
 client_id = '775301840052-9oua4seeq9hs087cct454g703a6apgcg.apps.googleusercontent.com'
 client_secret = 'P5Je6PeP3L9SWu2XVtDJLQXI'
-redirect_uri = 'http://localhost:8080/user/oauth'
+redirect_uri = 'http://localhost:8080/users/oauth'
 #redirect_uri = 'https://fp-zouch000.appspot.com/user/oauth'
 scope = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 oauth = OAuth2Session(client_id, redirect_uri=redirect_uri,
                           scope=scope)
-# get all existing boats
-def get_owner_boats(owner):
-    query = client.query(kind='Boat')
-    query.add_filter('owner', '=', owner)
-    #query.order = ['-']
-    results = list(query.fetch())
-    for e in results:
-        e["id"] = str(e.key.id)
-    return results
-
 # check if user is new
 def user_is_new(sub):
-    query = client.query(kind='Boat')
+    query = client.query(kind='User')
     results = list(query.fetch())
     for e in results:
-        if e['user_id'] == sub:
+        if e['user_id'] == str(sub):
             return False
     return True
 
@@ -111,35 +101,11 @@ def logout():
 @ bp.route('', methods=['GET'])
 def view_users():
     if request.method == 'GET':
+        if 'application/json' not in request.accept_mimetypes:
+            error_msg = {"Error": "Only JSON is supported as returned content type"}
+            return (error_msg, 406)
         user_list = get_users(request.base_url)
         return Response(json.dumps(user_list), status=200, mimetype='application/json')
-    else:
-        return 'Method not recogonized'
-
-# view all boats for given owner
-@bp.route('/users/<user_id>/boats', methods=['GET'])
-def get_boats_by_owner(user_id):
-    # delete the boat
-    if request.method == 'GET':
-        if 'Authorization' not in request.headers:
-            error_msg = {"Error": "Missing JWT"}
-            return (error_msg, 401)
-        jwt = request.headers['Authorization'][7:]
-        req = requests.Request()
-        try:
-            id_info = id_token.verify_oauth2_token(
-                jwt, req, client_id)
-        except ValueError:
-            error_msg = {"Error": "Invalid JWT"}
-            return (error_msg, 401)
-        if id_info['iss'] != 'accounts.google.com':
-            raise ValueError('Wrong issuer.')
-        owner = id_info['sub']
-        if owner != user_id:
-            error_msg = {"Error": "JWT doesn't match the owner_id specified in the URL"}
-            return (error_msg, 401)
-        boats = get_owner_boats(owner)
-        return Response(json.dumps(boats), status=200, mimetype='application/json')
     else:
         return 'Method not recogonized'
 
