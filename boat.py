@@ -151,10 +151,12 @@ def add_load_to_boat(load_id, boat_id):
     boat = client.get(key=boat_key)
     # check if both load and boat exist and load is not occupied
     if load is None or boat is None:
-        return 404
+        error_message = {"Error": "The specified boat and/or load don\u2019t exist"}
+        return (error_message, 404)
     # check if load has been assigned to another boat
     elif load['carrier'] is not None:
-        return 403
+        error_message = {"Error": "The load has already been assigned to another boat"}
+        return (error_message, 403)
     # update list of loads in boat
     load_brief = {'id':str(load.id)}
     boat['loads'].append(load_brief)
@@ -165,7 +167,7 @@ def add_load_to_boat(load_id, boat_id):
         "carrier": boat_brief
     })
     client.put(load)
-    return 204
+    return ('', 204)
 
 # remove an existing load from the boat it is assigned to one
 def remove_load_from_boat(load_id, boat_id):
@@ -175,7 +177,8 @@ def remove_load_from_boat(load_id, boat_id):
     boat = client.get(key=boat_key)
     # check if both load and boat exist and load is assigned to the boat
     if load is None or boat is None or load["carrier"] is None or str(load["carrier"]["id"])!=boat_id:
-        return 404
+        error_message = {"Error": "No load with this load_id is at the boat with this boat_id"}
+        return (error_message, 404)
     load.update({
         "carrier": None
     })
@@ -185,7 +188,7 @@ def remove_load_from_boat(load_id, boat_id):
         if load["id"] == load_id:
             boat['loads'].remove(load)
     client.put(boat)
-    return 204
+    return ('', 204)
 
 def get_owner_id(request_headers):
     if 'Authorization' not in request_headers:
@@ -208,7 +211,7 @@ def get_owner_id(request_headers):
     return id_info['sub']
 
 # create a new boat via POST or view all boats via GET
-@ bp.route('', methods=['POST', 'GET'])
+@ bp.route('', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def manage_boats():
     if 'application/json' not in request.accept_mimetypes:
         error_msg = {"Error": "Only JSON is supported as returned content type"}
@@ -232,6 +235,13 @@ def manage_boats():
     elif request.method == 'GET':
         boat_list = get_all_boats(request, owner_id)
         return Response(json.dumps(boat_list), status=200, mimetype='application/json')
+
+    # invalid action - edit/delete all boats
+    elif request.method == 'PUT' or request.method == 'DELETE':
+        res = make_response('')
+        res.headers.set('Allow', 'GET, PUT')
+        res.status_code = 405
+        return res
     else:
         return 'Method not recogonized'
 
@@ -264,27 +274,8 @@ def manage_boat(boat_id):
 @bp.route('/<boat_id>/loads/<load_id>', methods=['PUT', 'DELETE'])
 def manage_boat_load(load_id, boat_id):
     if request.method == 'PUT':
-        status = add_load_to_boat(request.url_root, load_id, boat_id)
-        if status == 403:
-            error_message = {"Error": "The load has already been assigned to another boat"}
-            return (error_message, 403)
-        elif status == 404:
-            error_message = {"Error":  "The specified boat and/or load don\u2019t exist"}
-            return (error_message, 404)
-        elif status == 204:
-            return ('', 204)
+        return add_load_to_boat(load_id, boat_id)
     elif request.method == 'DELETE':
-        status = remove_load_from_boat(load_id, boat_id)
-        if status == 404:
-            error_message = {"Error":  "No load with this load_id is at the boat with this boat_id"}
-            return (error_message, 404)
-        elif status == 204:
-            return ('', 204)
+        return remove_load_from_boat(load_id, boat_id)
     else:
         return 'Method not recogonized'
-
-
-
-
-
-

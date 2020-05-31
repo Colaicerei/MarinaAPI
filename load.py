@@ -1,13 +1,24 @@
 from google.cloud import datastore
-from flask import Blueprint, request, Response, jsonify, abort
+from flask import Blueprint, request, Response, make_response
 import json
 
 client = datastore.Client()
 
 bp = Blueprint('load', __name__, url_prefix='/loads')
 
+def count():
+    query = client.query(kind='Load')
+    query.keys_only()
+    results = query.fetch()
+    count = 0
+    for e in results:
+        count += 1
+    return count
+
 # get all existing loads
 def get_all_loads(request):
+    print(request.base_url)
+    print(request.url_root)
     query = client.query(kind='Load')
     q_limit = int(request.args.get('limit', '5'))
     q_offset = int(request.args.get('offset', '0'))
@@ -27,20 +38,23 @@ def get_all_loads(request):
             boat_key = client.key("Boat", int(carrier["id"]))
             boat = client.get(key=boat_key)
             if boat is not None:
-                e["carrier"]["self"] = request.url_root + '/boats/' + str(boat.id)
-    output = {"loads": results}
+                e["carrier"]["self"] = request.url_root + 'boats/' + str(boat.id)
+    output = {"loads": results, "total count": count()}
     if next_url:
         output["next"] = next_url
     return output
 
 # create a new load with weight, content, and delivery date as parameters
-def add_load(load_weight, load_content, delivery_date):
+def add_load(content):
+    if 'weight' not in content or 'content' not in content or 'delivery_date' not in content:
+        error_message = {"Error": "The request object is missing at least one of the required attributes"}
+        return (error_message, 400)
     new_load = datastore.Entity(key=client.key('Load'))
     new_load.update({
-        'weight': load_weight,
+        'weight': content['weight'],
         'carrier': None,
-        'content': load_content,
-        'delivery_date': delivery_date
+        'content': content['content'],
+        'delivery_date': content['delivery_date']
     })
     client.put(new_load)
     return new_load
@@ -112,14 +126,16 @@ def edit_load(content, load_id):
     return load
 
 # create a new load via POST or view all loads via GET
-@ bp.route('', methods=['POST', 'GET'])
+@ bp.route('', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def manage_loads():
+    if 'application/json' not in request.accept_mimetypes:
+        error_msg = {"Error": "Only JSON is supported as returned content type"}
+        return (error_msg, 406)
     if request.method == 'POST':
-        content = json.loads(request.data) or {}
-        if 'weight' not in content or 'content' not in content or 'delivery_date' not in content:
-            error_message = {"Error": "The request object is missing at least one of the required attributes"}
-            return (error_message, 400)
-        new_load = add_load(content["weight"], content["content"], content["delivery_date"])
+        request_content = json.loads(request.data) or {}
+        new_load = add_load(request_content)
+        if isinstance(new_load, tuple):
+            return new_load
         load_id = str(new_load.key.id)
         new_load["id"] = load_id
         new_load["self"] = request.base_url + '/' + load_id
@@ -127,6 +143,13 @@ def manage_loads():
     elif request.method == 'GET':
         load_list = get_all_loads(request)
         return Response(json.dumps(load_list), status=200, mimetype='application/json')
+
+    # invalid action - edit/delete all loads
+    elif request.method == 'PUT' or request.method == 'DELETE':
+        res = make_response('')
+        res.headers.set('Allow', 'GET, PUT')
+        res.status_code = 405
+        return res
     else:
         return 'Method not recogonized'
 
@@ -134,17 +157,20 @@ def manage_loads():
 @bp.route('/<load_id>', methods=['GET', 'DELETE', 'PUT', 'PATCH'])
 def manage_load(load_id):
     if request.method == 'GET':
+        if 'application/json' not in request.accept_mimetypes:
+            error_msg = {"Error": "Only JSON is supported as returned content type"}
+            return (error_msg, 406)
         return get_load(load_id, request.base_url)
     elif request.method == 'DELETE':
         return delete_load(load_id)
     elif request.method == 'PUT' or request.method == 'PATCH':
+        if 'application/json' not in request.accept_mimetypes:
+            error_msg = {"Error": "Only JSON is supported as returned content type"}
+            return (error_msg, 406)
         return edit_boat(request_content, load_id)
     else:
         return 'Method not recogonized'
 
-# main function
-if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=True)
 
 
 

@@ -7,6 +7,7 @@ from google.auth import crypt
 from google.auth import jwt
 from google.auth.transport import requests
 import secrets
+import datetime
 
 # This disables the requirement to use HTTPS so that you can test locally.
 import os
@@ -26,24 +27,32 @@ scope = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.goo
 oauth = OAuth2Session(client_id, redirect_uri=redirect_uri,
                           scope=scope)
 # check if user is new
-def user_is_new(sub):
+def find_user(sub):
     query = client.query(kind='User')
     results = list(query.fetch())
     for e in results:
         if e['user_id'] == str(sub):
-            return False
-    return True
+            return e
+    return None
 
 # add user to datastore
 def create_user(id_info):
-    if user_is_new(id_info['sub']):
+    user_query = find_user(id_info['sub'])
+    if user_query is None:
         new_user = datastore.Entity(key=client.key('User'))
         new_user.update({
             'user_id': id_info['sub'],
-            'email': id_info['email']
+            'email': id_info['email'],
+            'last_login': datetime.datetime.now()
         })
         client.put(new_user)
         return new_user
+    else:
+        user_query.update({
+            'last_login': datetime.datetime.now()
+        })
+        client.put(user_query)
+        return user_query
 
 # get all user from datastore
 def get_users(base_url):
@@ -117,10 +126,3 @@ def verify():
     request.args['jwt'], req, client_id)
 
     return repr(id_info) + "<br><br> the user is: " + id_info['email']
-
-
-if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=True)
-
-
-
