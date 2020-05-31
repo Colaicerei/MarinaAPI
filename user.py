@@ -6,7 +6,6 @@ from google.oauth2 import id_token
 from google.auth import crypt
 from google.auth import jwt
 from google.auth.transport import requests
-import secrets
 import datetime
 
 # This disables the requirement to use HTTPS so that you can test locally.
@@ -24,9 +23,9 @@ client_secret = 'P5Je6PeP3L9SWu2XVtDJLQXI'
 redirect_uri = 'http://localhost:8080/users/oauth'
 #redirect_uri = 'https://fp-zouch000.appspot.com/user/oauth'
 scope = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
-oauth = OAuth2Session(client_id, redirect_uri=redirect_uri,
-                          scope=scope)
-# check if user is new
+oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
+
+# check if user exists
 def find_user(sub):
     query = client.query(kind='User')
     results = list(query.fetch())
@@ -60,11 +59,12 @@ def get_users(base_url):
     results = list(query.fetch())
     for e in results:
         e['id'] = e.key.id
-        e['self'] = base_url + '/' + str(e.key.id)
+        e['self'] = base_url + '/' + str(e.key.id),
+        e['last_login'] = str(e['last_login'])
     return results
 
 # This link will redirect users to begin the OAuth flow with Google
-@bp.route('')
+@bp.route('/login')
 def user():
     if 'email' in session:
         return render_template('welcome.html', name=session['email'])
@@ -86,7 +86,7 @@ def oauthroute():
             client_secret=client_secret)
 
         if token['expires_in'] <= 0:
-            return redirect(url_for('user', message='Error: Token expired, please try again'))
+            return redirect(url_for('user.user', message='Error: Token expired, please try again'))
         jwt = token['id_token']
 
         req = requests.Request()
@@ -94,17 +94,17 @@ def oauthroute():
             id_info = id_token.verify_oauth2_token(jwt, req, client_id)
         except ValueError:
             error = "Error: invalid JWT"
-            return redirect(url_for('user', message=error))
+            return redirect(url_for('user.user', message=error))
         if id_info['iss'] != 'accounts.google.com':
             raise ValueError('Wrong issuer.')
         else:
-            user = create_user(id_info)
-        return render_template('user_info.html',jwt = jwt, user = user)
+            new_user = create_user(id_info)
+        return render_template('user_info.html',jwt = jwt, user = new_user)
 
 @bp.route('/logout')
 def logout():
     session.pop('email', None)
-    return redirect(url_for('user',message='You are logged out'))
+    return redirect(url_for('user.user',message='You are logged out'))
 
 # create a new boat via POST or view all boats via GET
 @ bp.route('', methods=['GET'])

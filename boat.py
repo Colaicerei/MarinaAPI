@@ -116,11 +116,11 @@ def delete_boat(boat_id, owner_id):
 def edit_boat(content, boat_id, owner_id):
     boat_key = client.key('Boat', int(boat_id))
     boat = client.get(key=boat_key)
-    if result is None:
+    if boat is None:
         error_message = {"Error": "No boat with this boat_id exists"}
         return (error_message, 404)
     else:
-        if result['owner'] != owner_id:
+        if boat['owner'] != owner_id:
             error_msg = {"Error": "The boat is owned by someone else and cannot be edited"}
             return (error_msg, 403)
         if 'name' in content:
@@ -141,7 +141,9 @@ def edit_boat(content, boat_id, owner_id):
             'length': boat_length
         })
         client.put(boat)
-    return boat
+        boat["id"] = boat.id
+        boat["self"] = request.url_root + 'boats/' + str(boat.id)
+        return Response(json.dumps(boat), status=200, mimetype='application/json')
 
 # assign an existing load to an existing boat
 def add_load_to_boat(load_id, boat_id):
@@ -265,6 +267,7 @@ def manage_boat(boat_id):
         if 'application/json' not in request.accept_mimetypes:
             error_msg = {"Error": "Only JSON is supported as returned content type"}
             return (error_msg, 406)
+        request_content = json.loads(request.data) or {}
         return edit_boat(request_content, boat_id, user_id)
     else:
         return 'Method not recogonized'

@@ -101,7 +101,7 @@ def delete_load(load_id):
 def edit_load(content, load_id):
     load_key = client.key('Load', int(load_id))
     load = client.get(key=load_key)
-    if result is None:
+    if load is None:
         error_message = {"Error": "No load with this load_id exists"}
         return (error_message, 404)
     else:
@@ -123,8 +123,10 @@ def edit_load(content, load_id):
             'delivery_date': delivery_date
         })
         client.put(load)
-    return load
-
+        load["id"] = load_id
+        load["self"] = request.url_root + 'loads/' + str(load.id)
+        return Response(json.dumps(load), status=200, mimetype='application/json')
+    
 # create a new load via POST or view all loads via GET
 @ bp.route('', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def manage_loads():
@@ -167,7 +169,8 @@ def manage_load(load_id):
         if 'application/json' not in request.accept_mimetypes:
             error_msg = {"Error": "Only JSON is supported as returned content type"}
             return (error_msg, 406)
-        return edit_boat(request_content, load_id)
+        request_content = json.loads(request.data) or {}
+        return edit_load(request_content, load_id)
     else:
         return 'Method not recogonized'
 

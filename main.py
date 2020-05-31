@@ -9,6 +9,7 @@ app.register_blueprint(boat.bp)
 app.register_blueprint(user.bp)
 app.register_blueprint(load.bp)
 client = datastore.Client()
+app.secret_key = 'super secret 8888'
 
 # This link will redirect users to begin the OAuth flow with Google
 @app.route('/')
