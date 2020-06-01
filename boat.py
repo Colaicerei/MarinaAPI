@@ -268,6 +268,14 @@ def manage_boat(boat_id):
             error_msg = {"Error": "Only JSON is supported as returned content type"}
             return (error_msg, 406)
         request_content = json.loads(request.data) or {}
+        if request.method == 'PUT':
+            if 'name' not in request_content or 'type' not in request_content or 'length' not in request_content:
+                error_message = {"Error": "The request object is missing at least one of the required attributes"}
+                return (error_message, 400)
+        if request.method == 'PATCH':
+            if 'name' not in request_content and 'type' not in request_content and 'length' not in request_content:
+                error_message = {"Error": "The request object needs at least one of the attributes"}
+                return (error_message, 400)
         return edit_boat(request_content, boat_id, user_id)
     else:
         return 'Method not recogonized'

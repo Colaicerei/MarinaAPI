@@ -170,6 +170,14 @@ def manage_load(load_id):
             error_msg = {"Error": "Only JSON is supported as returned content type"}
             return (error_msg, 406)
         request_content = json.loads(request.data) or {}
+        if request.method == 'PUT':
+            if 'weight' not in request_content or 'content' not in request_content or 'delivery_date' not in request_content:
+                error_message = {"Error": "The request object is missing at least one of the required attributes"}
+                return (error_message, 400)
+        if request.method == 'PATCH':
+            if 'weight' not in request_content and 'content' not in request_content and 'delivery_date' not in request_content:
+                error_message = {"Error": "The request object needs at least one of the attributes"}
+                return (error_message, 400)
         return edit_load(request_content, load_id)
     else:
         return 'Method not recogonized'
