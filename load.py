@@ -126,7 +126,7 @@ def edit_load(content, load_id):
         load["id"] = load_id
         load["self"] = request.url_root + 'loads/' + str(load.id)
         return Response(json.dumps(load), status=200, mimetype='application/json')
-    
+
 # create a new load via POST or view all loads via GET
 @ bp.route('', methods=['POST', 'GET', 'PUT', 'DELETE'])
 def manage_loads():

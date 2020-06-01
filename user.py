@@ -20,8 +20,8 @@ bp = Blueprint('user', __name__, url_prefix='/users')
 # https://console.cloud.google.com/apis/credentials
 client_id = '775301840052-9oua4seeq9hs087cct454g703a6apgcg.apps.googleusercontent.com'
 client_secret = 'P5Je6PeP3L9SWu2XVtDJLQXI'
-redirect_uri = 'http://localhost:8080/users/oauth'
-#redirect_uri = 'https://fp-zouch000.appspot.com/user/oauth'
+#redirect_uri = 'http://localhost:8080/users/oauth'
+redirect_uri = 'https://fp-zouch000.appspot.com/users/oauth'
 scope = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
 oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
 
